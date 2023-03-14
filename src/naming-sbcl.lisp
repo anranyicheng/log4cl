@@ -79,7 +79,7 @@ will be: package.foo.bar.baz
                  (not (equal 0 (search "CLEANUP-FUN-"
                                        (symbol-name debug-name)))))
         debug-name)
-      (cond 
+      (cond
         ((atom debug-name)
          (string debug-name))
         ((member (first debug-name) '(flet labels lambda))
@@ -102,15 +102,14 @@ compiling local function FOO inside a global function FOOBAR, will
 return \(FOOBAR FOO\)"
   (let* ((names-from-lexenv
            (nreverse
-            (loop
-              with last = nil
-              as lambda = (sb-c::lexenv-lambda env)
-              then (sb-c::lambda-parent lambda)
-              while lambda
-              as debug-name = (include-block-debug-name? (sb-c::leaf-debug-name lambda))
-              if (and debug-name (not (eq last debug-name)))
-              collect debug-name
-              and do (setq last debug-name))))
+            (loop with last = nil
+                  as lambda = (sb-c::lexenv-lambda env)
+                    then (sb-c::lexenv-lambda (sb-c::lambda-lexenv lambda))
+                  while lambda
+                  as debug-name = (include-block-debug-name? (sb-c::leaf-debug-name lambda))
+                  if (and debug-name (not (eq last debug-name)))
+                    collect debug-name
+                    and do (setq last debug-name))))
          (name (or names-from-lexenv sb-pcl::*method-name*)))
     (fix-method-spec-list name)))
 
