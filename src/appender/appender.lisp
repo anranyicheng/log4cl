@@ -446,7 +446,23 @@ them. One possible extension could be having daily log file and a
 weekly backup, that is appended to each day")
   (:method (appender log-filename backup-filename)
     (declare (ignore appender))
-    (rename-file log-filename backup-filename))
+    ;; (rename-file filespec new-name) computes the effective new name
+    ;; via (merge-pathnames new-name filespec). If BACKUP-FILENAME is
+    ;; a relative pathname which includes a directory component such
+    ;; as #P".logs/foo.log.001", the effective new name would be
+    ;; something like #P".logs/.logs/foo.log.001". To prevent this,
+    ;; merge BACKUP-FILE with the directory component of
+    ;; *DEFAULT-PATHNAME-DEFAULTS* which is usually the current
+    ;; working directory of the process as an absolute pathname.
+    (flet ((absolute-backup-filename ()
+             (let* ((default-directory (pathname-directory *default-pathname-defaults*))
+                    (base-pathname (make-pathname :directory default-directory)))
+               (merge-pathnames backup-filename base-pathname))))
+      (let ((effective-new-name (if (typep (pathname-directory backup-filename)
+                                           '(cons (eql :relative)))
+                                    (absolute-backup-filename)
+                                    backup-filename)))
+        (rename-file log-filename effective-new-name))))
   (:method ((appender daily-file-appender) log-filename backup-filename)
     (declare (ignore log-filename))
     (with-slots (%last-backup-name) appender
